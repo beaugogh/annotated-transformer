@@ -9,16 +9,16 @@ if __name__ == '__main__':
 
     # Preparing train data
     train_data = [
-        ["Aragorn was the heir of Isildur", 1],
-        ["Frodo was the heir of Isildur", 0],
+        ["Aragorn was the heir of Isildur", 1.0],
+        ["Frodo was the heir of Isildur", 0.0],
     ]
     train_df = pd.DataFrame(train_data)
     train_df.columns = ["text", "labels"]
 
     # Preparing eval data
     eval_data = [
-        ["Theoden was the king of Rohan", 1],
-        ["Merry was the king of Rohan", 0],
+        ["Theoden was the king of Rohan", 1.0],
+        ["Merry was the king of Rohan", 0.0],
     ]
     eval_df = pd.DataFrame(eval_data)
     eval_df.columns = ["text", "labels"]
@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     model_path = '/home/bo/workspace/models/bert-base-uncased'
     model = ClassificationModel(
-        "bert", model_path, args=model_args
+        "bert", model_path, args=model_args,  num_labels=1
     )
 
     # Train the model

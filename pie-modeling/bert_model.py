@@ -75,7 +75,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
             if self.num_labels == 1:
                 #  We are doing regression
                 loss_fct = MSELoss()
-                loss = loss_fct(logits.view(-1), labels.view(-1))
+                loss = loss_fct(logits.float().view(-1), labels.float().view(-1))
             else:
                 if self.weight is not None:
                     weight = self.weight.to(labels.device)

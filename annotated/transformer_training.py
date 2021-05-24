@@ -1,5 +1,5 @@
 from torch.autograd import Variable
-from transformer_modeling import subsequent_mask, make_model
+from annotated.transformer_modeling import subsequent_mask
 import time
 import torch
 import torch.nn as nn

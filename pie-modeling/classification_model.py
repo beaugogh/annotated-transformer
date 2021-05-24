@@ -9,11 +9,6 @@ import math
 import os
 import random
 import warnings
-import wandb
-from dataclasses import asdict
-from multiprocessing import cpu_count
-import tempfile
-from pathlib import Path
 
 from collections import Counter
 import numpy as np
@@ -1238,47 +1233,6 @@ class ClassificationModel:
             for key in sorted(result.keys()):
                 writer.write("{} = {}\n".format(key, str(result[key])))
 
-        if (
-                self.args.wandb_project
-                and wandb_log
-                and not multi_label
-                and not self.args.regression
-        ):
-            if not wandb.setup().settings.sweep_id:
-                logger.info(" Initializing WandB run for evaluation.")
-                wandb.init(
-                    project=args.wandb_project,
-                    config={**asdict(args), "repo": "simpletransformers"},
-                    **args.wandb_kwargs,
-                )
-            if not args.labels_map:
-                self.args.labels_map = {i: i for i in range(self.num_labels)}
-
-            labels_list = sorted(list(self.args.labels_map.keys()))
-            inverse_labels_map = {
-                value: key for key, value in self.args.labels_map.items()
-            }
-
-            truth = [inverse_labels_map[out] for out in out_label_ids]
-
-            # Confusion Matrix
-            wandb.sklearn.plot_confusion_matrix(
-                truth, [inverse_labels_map[pred] for pred in preds], labels=labels_list,
-            )
-
-            if not self.args.sliding_window:
-                # ROC`
-                wandb.log({"roc": wandb.plots.ROC(truth, model_outputs, labels_list)})
-
-                # Precision Recall
-                wandb.log(
-                    {
-                        "pr": wandb.plots.precision_recall(
-                            truth, model_outputs, labels_list
-                        )
-                    }
-                )
-
         return results, model_outputs, wrong
 
     def load_and_cache_examples(
@@ -1820,44 +1774,6 @@ class ClassificationModel:
             return preds, model_outputs, all_embedding_outputs, all_layer_hidden_states
         else:
             return preds, model_outputs
-
-    def convert_to_onnx(self, output_dir=None, set_onnx_arg=True):
-        """Convert the model to ONNX format and save to output_dir
-
-        Args:
-            output_dir (str, optional): If specified, ONNX model will be saved to output_dir (else args.output_dir will be used). Defaults to None.
-            set_onnx_arg (bool, optional): Updates the model args to set onnx=True. Defaults to True.
-        """  # noqa
-        if not output_dir:
-            output_dir = os.path.join(self.args.output_dir, "onnx")
-        os.makedirs(output_dir, exist_ok=True)
-
-        if os.listdir(output_dir):
-            raise ValueError(
-                "Output directory ({}) already exists and is not empty."
-                " Output directory for onnx conversion must be empty.".format(
-                    output_dir
-                )
-            )
-
-        onnx_model_name = os.path.join(output_dir, "onnx_model.onnx")
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            self.save_model(output_dir=temp_dir, model=self.model)
-
-            convert(
-                framework="pt",
-                model=temp_dir,
-                tokenizer=self.tokenizer,
-                output=Path(onnx_model_name),
-                pipeline_name="sentiment-analysis",
-                opset=11,
-            )
-
-        self.args.onnx = True
-        self.tokenizer.save_pretrained(output_dir)
-        self.config.save_pretrained(output_dir)
-        self.save_model_args(output_dir)
 
     def _threshold(self, x, threshold):
         if x >= threshold:
